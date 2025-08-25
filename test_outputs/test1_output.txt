@@ -1,0 +1,42 @@
+[line 2] PREPROC      : #include <stdio.h>
+[line 3] TYPE         : int
+[line 3] IDENT        : main
+[line 3] PUNCT        : (
+[line 3] PUNCT        : {
+[line 4] TYPE         : int
+[line 4] IDENT        : a
+[line 4] OP           : =
+[line 4] NUMBER       : 10
+[line 4] PUNCT        : ;
+[line 5] TYPE         : float
+[line 5] IDENT        : b
+[line 5] OP           : =
+[line 5] NUMBER       : 20.5
+[line 5] PUNCT        : ;
+[line 6] TYPE         : char
+[line 6] IDENT        : c
+[line 6] OP           : =
+[line 6] CHAR         : 'x'
+[line 6] PUNCT        : ;
+[line 7] IDENT        : printf
+[line 7] PUNCT        : (
+[line 7] PUNCT        : ;
+[line 8] KEYWORD      : return
+[line 8] NUMBER       : 0
+[line 8] PUNCT        : ;
+[line 9] PUNCT        : }
+
+==== SYMBOL TABLE ====
+Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+a                    int             -            1          -               -
+b                    float           -            1          -               -
+c                    char            -            1          -               -
+printf               -               -            1          -               "Hello World\n"
+main                 int             -            1          int             
+
+==== CONSTANT TABLE ====
+Variable Name        Line No.   Value                          Type
+a                    4          10                             int
+b                    5          20.5                           float
+c                    6          'x'                            char
+-                    8          0                              int

@@ -1,0 +1,32 @@
+[line 2] PREPROC      : #include <stdio.h>
+[line 3] TYPE         : int
+[line 3] IDENT        : main
+[line 3] PUNCT        : (
+[line 3] PUNCT        : {
+[line 4] TYPE         : char
+[line 4] IDENT        : c
+[line 4] OP           : =
+[line 4] CHAR         : '\n'
+[line 4] PUNCT        : ;
+[line 5] TYPE         : char
+[line 5] OP           : *
+[line 5] IDENT        : str
+[line 5] OP           : =
+[line 5] STRING       : "Test string with escape \" and newline\n"
+[line 5] PUNCT        : ;
+[line 6] KEYWORD      : return
+[line 6] NUMBER       : 0
+[line 6] PUNCT        : ;
+[line 7] PUNCT        : }
+
+==== SYMBOL TABLE ====
+Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+c                    char            -            1          -               -
+str                  char            -            1          -               -
+main                 int             -            1          int             
+
+==== CONSTANT TABLE ====
+Variable Name        Line No.   Value                          Type
+c                    4          '\n'                           char
+str                  5          "Test string with escape \" and newline\n" string
+-                    6          0                              int

@@ -1,0 +1,150 @@
+[line 2] PREPROC      : #include <stdio.h>
+[line 5] TYPE         : int
+[line 5] IDENT        : add
+[line 5] PUNCT        : (
+[line 5] PUNCT        : {
+[line 6] KEYWORD      : return
+[line 6] IDENT        : a
+[line 6] OP           : +
+[line 6] IDENT        : b
+[line 6] PUNCT        : ;
+[line 7] PUNCT        : }
+[line 10] TYPE         : float
+[line 10] IDENT        : calculate
+[line 10] PUNCT        : (
+[line 10] PUNCT        : {
+[line 11] TYPE         : float
+[line 11] IDENT        : result
+[line 11] OP           : =
+[line 11] NUMBER       : 0.0
+[line 11] PUNCT        : ;
+[line 13] KEYWORD      : if
+[line 13] PUNCT        : (
+[line 13] IDENT        : op
+[line 13] OP           : ==
+[line 13] CHAR         : '+'
+[line 13] PUNCT        : )
+[line 13] PUNCT        : {
+[line 14] IDENT        : result
+[line 14] OP           : =
+[line 14] IDENT        : x
+[line 14] OP           : +
+[line 14] IDENT        : y
+[line 14] PUNCT        : ;
+[line 15] PUNCT        : }
+[line 15] KEYWORD      : else
+[line 15] KEYWORD      : if
+[line 15] PUNCT        : (
+[line 15] IDENT        : op
+[line 15] OP           : ==
+[line 15] CHAR         : '-'
+[line 15] PUNCT        : )
+[line 15] PUNCT        : {
+[line 16] IDENT        : result
+[line 16] OP           : =
+[line 16] IDENT        : x
+[line 16] OP           : -
+[line 16] IDENT        : y
+[line 16] PUNCT        : ;
+[line 17] PUNCT        : }
+[line 17] KEYWORD      : else
+[line 17] KEYWORD      : if
+[line 17] PUNCT        : (
+[line 17] IDENT        : op
+[line 17] OP           : ==
+[line 17] CHAR         : '*'
+[line 17] PUNCT        : )
+[line 17] PUNCT        : {
+[line 18] IDENT        : result
+[line 18] OP           : =
+[line 18] IDENT        : x
+[line 18] OP           : *
+[line 18] IDENT        : y
+[line 18] PUNCT        : ;
+[line 19] PUNCT        : }
+[line 19] KEYWORD      : else
+[line 19] KEYWORD      : if
+[line 19] PUNCT        : (
+[line 19] IDENT        : op
+[line 19] OP           : ==
+[line 19] CHAR         : '/'
+[line 19] PUNCT        : )
+[line 19] PUNCT        : {
+[line 20] KEYWORD      : if
+[line 20] PUNCT        : (
+[line 20] IDENT        : y
+[line 20] OP           : !=
+[line 20] NUMBER       : 0
+[line 20] PUNCT        : )
+[line 20] PUNCT        : {
+[line 21] IDENT        : result
+[line 21] OP           : =
+[line 21] IDENT        : x
+[line 21] OP           : /
+[line 21] IDENT        : y
+[line 21] PUNCT        : ;
+[line 22] PUNCT        : }
+[line 23] PUNCT        : }
+[line 25] KEYWORD      : return
+[line 25] IDENT        : result
+[line 25] PUNCT        : ;
+[line 26] PUNCT        : }
+[line 29] TYPE         : int
+[line 29] IDENT        : main
+[line 29] PUNCT        : (
+[line 29] PUNCT        : {
+[line 30] TYPE         : int
+[line 30] IDENT        : sum
+[line 30] OP           : =
+[line 30] IDENT        : add
+[line 30] PUNCT        : (
+[line 30] PUNCT        : ;
+[line 31] IDENT        : printf
+[line 31] PUNCT        : (
+[line 31] PUNCT        : ;
+[line 33] TYPE         : float
+[line 33] IDENT        : calc_result
+[line 33] OP           : =
+[line 33] IDENT        : calculate
+[line 33] PUNCT        : (
+[line 33] PUNCT        : ;
+[line 34] IDENT        : printf
+[line 34] PUNCT        : (
+[line 34] PUNCT        : ;
+[line 37] IDENT        : calc_result
+[line 37] OP           : =
+[line 37] IDENT        : calculate
+[line 37] PUNCT        : (
+[line 37] PUNCT        : ;
+[line 38] IDENT        : printf
+[line 38] PUNCT        : (
+[line 38] PUNCT        : ;
+[line 40] KEYWORD      : return
+[line 40] NUMBER       : 0
+[line 40] PUNCT        : ;
+[line 41] PUNCT        : }
+
+==== SYMBOL TABLE ====
+Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+sum                  int             -            1          -               -
+a                    -               -            1          -               -
+b                    -               -            1          -               -
+result               float           -            6          -               -
+x                    -               -            4          -               -
+y                    -               -            5          -               -
+add                  int             -            2          int             int a, int b ; 5, 10
+calculate            float           -            3          float           int x, float y, char op ; 20, 5.5, '+' ; 20, 5.5, '*'
+printf               -               -            3          -               "Sum: %d\n", sum ; "Calculation result: %.2f\n", calc_result ; "Calculation result: %.2f\n", calc_result
+main                 int             -            1          int             
+calc_result          float           -            2          -               -
+op                   -               -            4          -               -
+
+==== CONSTANT TABLE ====
+Variable Name        Line No.   Value                          Type
+result               11         0.0                            float
+-                    13         '+'                            char
+-                    15         '-'                            char
+-                    17         '*'                            char
+-                    19         '/'                            char
+-                    20         0                              int
+-                    40         0                              int

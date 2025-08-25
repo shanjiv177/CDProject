@@ -1,0 +1,147 @@
+[line 2] PREPROC      : #include <stdio.h>
+[line 5] TYPE         : int
+[line 5] IDENT        : multiply
+[line 5] PUNCT        : (
+[line 5] PUNCT        : {
+[line 6] KEYWORD      : return
+[line 6] IDENT        : x
+[line 6] OP           : *
+[line 6] IDENT        : y
+[line 6] PUNCT        : ;
+[line 7] PUNCT        : }
+[line 10] TYPE         : void
+[line 10] IDENT        : printMessage
+[line 10] PUNCT        : (
+[line 10] PUNCT        : {
+[line 11] IDENT        : printf
+[line 11] PUNCT        : (
+[line 11] PUNCT        : ;
+[line 12] PUNCT        : }
+[line 15] TYPE         : int
+[line 15] IDENT        : sumArray
+[line 15] PUNCT        : (
+[line 15] PUNCT        : {
+[line 16] TYPE         : int
+[line 16] IDENT        : total
+[line 16] OP           : =
+[line 16] NUMBER       : 0
+[line 16] PUNCT        : ;
+[line 17] KEYWORD      : for
+[line 17] PUNCT        : (
+[line 17] TYPE         : int
+[line 17] IDENT        : i
+[line 17] OP           : =
+[line 17] NUMBER       : 0
+[line 17] PUNCT        : ;
+[line 17] IDENT        : i
+[line 17] OP           : <
+[line 17] IDENT        : size
+[line 17] PUNCT        : ;
+[line 17] IDENT        : i
+[line 17] OP           : ++
+[line 17] PUNCT        : )
+[line 17] PUNCT        : {
+[line 18] IDENT        : total
+[line 18] OP           : +=
+[line 18] IDENT        : arr
+[line 18] PUNCT        : [
+[line 18] IDENT        : i
+[line 18] PUNCT        : ]
+[line 18] PUNCT        : ;
+[line 19] PUNCT        : }
+[line 20] KEYWORD      : return
+[line 20] IDENT        : total
+[line 20] PUNCT        : ;
+[line 21] PUNCT        : }
+[line 23] TYPE         : int
+[line 23] IDENT        : main
+[line 23] PUNCT        : (
+[line 23] PUNCT        : {
+[line 25] TYPE         : int
+[line 25] IDENT        : product
+[line 25] OP           : =
+[line 25] IDENT        : multiply
+[line 25] PUNCT        : (
+[line 25] PUNCT        : ;
+[line 28] TYPE         : int
+[line 28] IDENT        : a
+[line 28] OP           : =
+[line 28] NUMBER       : 10
+[line 28] PUNCT        : ;
+[line 29] TYPE         : int
+[line 29] IDENT        : b
+[line 29] OP           : =
+[line 29] NUMBER       : 5
+[line 29] PUNCT        : ;
+[line 30] TYPE         : int
+[line 30] IDENT        : result
+[line 30] OP           : =
+[line 30] IDENT        : multiply
+[line 30] PUNCT        : (
+[line 30] PUNCT        : ;
+[line 33] IDENT        : printMessage
+[line 33] PUNCT        : (
+[line 33] PUNCT        : ;
+[line 36] TYPE         : int
+[line 36] IDENT        : numbers
+[line 36] PUNCT        : [
+[line 36] PUNCT        : ]
+[line 36] OP           : =
+[line 36] PUNCT        : {
+[line 36] NUMBER       : 1
+[line 36] PUNCT        : ,
+[line 36] NUMBER       : 2
+[line 36] PUNCT        : ,
+[line 36] NUMBER       : 3
+[line 36] PUNCT        : ,
+[line 36] NUMBER       : 4
+[line 36] PUNCT        : ,
+[line 36] NUMBER       : 5
+[line 36] PUNCT        : }
+[line 36] PUNCT        : ;
+[line 37] TYPE         : int
+[line 37] IDENT        : sum
+[line 37] OP           : =
+[line 37] IDENT        : sumArray
+[line 37] PUNCT        : (
+[line 37] PUNCT        : ;
+[line 39] IDENT        : printf
+[line 39] PUNCT        : (
+[line 39] PUNCT        : ;
+[line 41] KEYWORD      : return
+[line 41] NUMBER       : 0
+[line 41] PUNCT        : ;
+[line 42] PUNCT        : }
+
+==== SYMBOL TABLE ====
+Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+sum                  int             -            1          -               -
+a                    int             -            1          -               -
+b                    int             -            1          -               -
+result               int             -            1          -               -
+i                    int             -            4          -               -
+x                    -               -            1          -               -
+y                    -               -            1          -               -
+sumArray             int             -            2          int             int arr[], int size ; numbers, 5
+total                int             -            3          -               -
+printf               -               -            2          -               "Hello from function!\n" ; "Results: %d, %d, %d\n", product, result, sum
+arr                  -               -            1          -               -
+printMessage         void            -            2          void             ; 
+size                 -               -            1          -               -
+product              int             -            1          -               -
+numbers              int             -            1          -               -
+main                 int             -            1          int             
+multiply             int             -            3          int             int x, int y ; 6, 7 ; a, b
+
+==== CONSTANT TABLE ====
+Variable Name        Line No.   Value                          Type
+total                16         0                              int
+i                    17         0                              int
+a                    28         10                             int
+b                    29         5                              int
+-                    36         1                              int
+-                    36         2                              int
+-                    36         3                              int
+-                    36         4                              int
+-                    36         5                              int
+-                    41         0                              int

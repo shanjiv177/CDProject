@@ -1,0 +1,66 @@
+[line 2] PREPROC      : #include <stdio.h>
+[line 4] TYPE         : int
+[line 4] IDENT        : main
+[line 4] PUNCT        : (
+[line 4] PUNCT        : {
+[line 5] TYPE         : char
+[line 5] OP           : *
+[line 5] IDENT        : s1
+[line 5] OP           : =
+[line 5] STRING       : "Hello World"
+[line 5] PUNCT        : ;
+[line 6] TYPE         : char
+[line 6] OP           : *
+[line 6] IDENT        : s2
+[line 6] OP           : =
+[line 6] STRING       : "Hello \"Quoted\" World"
+[line 6] PUNCT        : ;
+[line 7] TYPE         : char
+[line 7] OP           : *
+[line 7] IDENT        : s3
+[line 7] OP           : =
+[line 7] STRING       : "Line1\nLine2"
+[line 7] PUNCT        : ;
+[line 8] TYPE         : char
+[line 8] IDENT        : c1
+[line 8] OP           : =
+[line 8] CHAR         : 'a'
+[line 8] PUNCT        : ;
+[line 9] TYPE         : char
+[line 9] IDENT        : c2
+[line 9] OP           : =
+[line 9] CHAR         : '\n'
+[line 9] PUNCT        : ;
+[line 10] TYPE         : char
+[line 10] IDENT        : c3
+[line 10] OP           : =
+[line 10] CHAR         : '\''
+[line 10] PUNCT        : ;
+[line 12] IDENT        : printf
+[line 12] PUNCT        : (
+[line 12] PUNCT        : ;
+[line 13] KEYWORD      : return
+[line 13] NUMBER       : 0
+[line 13] PUNCT        : ;
+[line 14] PUNCT        : }
+
+==== SYMBOL TABLE ====
+Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+s1                   char            -            1          -               -
+s2                   char            -            1          -               -
+s3                   char            -            1          -               -
+printf               -               -            1          -               "%s %c\n", s1, c1
+c1                   char            -            1          -               -
+c2                   char            -            1          -               -
+c3                   char            -            1          -               -
+main                 int             -            1          int             
+
+==== CONSTANT TABLE ====
+Variable Name        Line No.   Value                          Type
+s1                   5          "Hello World"                  string
+s2                   6          "Hello \"Quoted\" World"       string
+s3                   7          "Line1\nLine2"                 string
+c1                   8          'a'                            char
+c2                   9          '\n'                           char
+c3                   10         '\''                           char
+-                    13         0                              int
