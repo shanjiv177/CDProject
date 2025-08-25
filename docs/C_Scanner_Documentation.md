@@ -5,8 +5,9 @@
 This project implements a lexical analyzer (scanner) for the C programming language using Flex. The primary goal is to recognize C language tokens, track symbols and constants in efficient data structures, and provide detailed information about the code structure.
 
 The scanner includes:
-- A symbol table with O(1) lookup using a hash table implementation
-- A constant table for tracking literal values with their associated variables
+
+- An array-based symbol table with efficient lookup functionality
+- An array-based constant table for tracking literal values with their associated variables
 - Error detection and reporting for invalid tokens
 - Support for all standard C tokens including identifiers, keywords, literals, operators, etc.
 - Special handling for comments, strings, and character literals
@@ -378,24 +379,9 @@ static void sym_append_params(Symbol* s, const char* params) {
 }
 ```
 
-### 6.2 Hash Function
+### 6.2 Symbol Table Implementation
 
-```c
-static unsigned long hash_function(const char* str) {
-    unsigned long hash = 5381;
-    int c;
-    while ((c = (unsigned char) *str++)) {
-        hash = ((hash << 5) + hash) + c; // hash * 33 + c
-    }
-    return hash;
-}
-```
-
-The scanner uses the DJB2 hash algorithm, which provides a good distribution for string keys with minimal collisions. This function:
-
-- Starts with a seed value of 5381
-- For each character in the string, multiplies the current hash by 33 and adds the ASCII value of the character
-- Returns the final hash value
+The scanner uses a simple array-based implementation for both symbol and constant tables. This approach provides a straightforward implementation with reasonable performance for our use case.
 
 ### 6.3 Symbol Table Operations
 
@@ -403,46 +389,44 @@ The scanner uses the DJB2 hash algorithm, which provides a good distribution for
 
 ```c
 static Symbol* sym_lookup(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = symtab[h];
-    while (s) {
-        if (strcmp(s->name, name) == 0) {
-            return s;
+    for (size_t i = 0; i < nsymbols; i++) {
+        if (strcmp(symbols[i].name, name) == 0) {
+            return &symbols[i];
         }
-        s = s->next;
     }
     return NULL;
 }
 ```
 
-This function searches for a symbol by name:
+This function searches for a symbol by name by iterating through the symbols array.
 
-- Computes the hash value of the name
-- Follows the linked list in the corresponding bucket
-- Returns the symbol if found, or NULL if not found
-
-#### 6.3.2 Symbol Insertion
+#### 6.3.2 Symbol Addition
 
 ```c
-static Symbol* sym_insert(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = (Symbol*)calloc(1, sizeof(Symbol));
-    s->name = xstrdup(name);
-    s->frequency = 0;
-    s->next = symtab[h];
-    symtab[h] = s;
-    return s;
+static Symbol* sym_add(const char* name) {
+    if (nsymbols == capsymbols) {
+        capsymbols = capsymbols ? capsymbols * 2 : 64;
+        symbols = (Symbol*)realloc(symbols, capsymbols * sizeof(Symbol));
+    }
+    
+    symbols[nsymbols].name = xstrdup(name ? name : "");
+    symbols[nsymbols].type = NULL;
+    symbols[nsymbols].dimensions = NULL;
+    symbols[nsymbols].frequency = 0;
+    symbols[nsymbols].return_type = NULL;
+    symbols[nsymbols].param_lists = NULL;
+    symbols[nsymbols].is_function = 0;
+    
+    return &symbols[nsymbols++];
 }
 ```
 
-This function inserts a new symbol into the table:
+This function adds a new symbol to the array:
 
-- Computes the hash value of the name
-- Allocates memory for a new symbol structure
-- Duplicates the name string to avoid reference issues
-- Initializes frequency to 0
-- Adds the new symbol to the front of the linked list in the bucket
-- Returns the newly inserted symbol
+- Checks if the array needs to be resized and doubles the capacity if needed
+- Initializes a new symbol with the given name
+- Sets default values for all other fields
+- Returns a pointer to the newly added symbol
 
 #### 6.3.3 Symbol Access and Update
 
@@ -450,7 +434,7 @@ This function inserts a new symbol into the table:
 static Symbol* sym_touch(const char* name) {
     Symbol* s = sym_lookup(name);
     if (!s) {
-        s = sym_insert(name);
+        s = sym_add(name);
     }
     s->frequency++;
     return s;
@@ -460,7 +444,7 @@ static Symbol* sym_touch(const char* name) {
 This function is used to access a symbol, creating it if it doesn't exist:
 
 - Looks up the symbol by name
-- If not found, inserts a new symbol
+- If not found, adds a new symbol
 - Increments the frequency counter (tracks usage)
 - Returns the symbol
 
