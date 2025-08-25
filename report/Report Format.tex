@@ -161,9 +161,9 @@ Our lexical analyzer for the C programming language is implemented using Flex an
 
 \subsection{Key Components}
 \begin{itemize}
-    \item \textbf{Symbol Table}: A hash-based implementation with O(1) lookup that tracks identifiers, their types, dimensions, frequencies, and function-related information.
+    \item \textbf{Symbol Table}: An array-based implementation with efficient lookup that tracks identifiers, their types, dimensions, frequencies, and function-related information.
     
-    \item \textbf{Constant Table}: Tracks constant values with their variable names, line numbers, and types.
+    \item \textbf{Constant Table}: An array-based implementation that tracks constant values with their variable names, line numbers, and types.
     
     \item \textbf{State Tracking}: Maintains context for declarations, assignments, and function argument collection using various state variables.
     
@@ -185,7 +185,6 @@ typedef struct Symbol {
     char* return_type;  
     char* param_lists;  
     int   is_function;  
-    struct Symbol* next;
 } Symbol;
 \end{verbatim}
 
@@ -203,17 +202,22 @@ typedef struct Constant {
 
 \subsection{Key Algorithms}
 
-\subsubsection{Symbol Table Hash Function}
-We use the DJB2 hash algorithm for the symbol table, which provides good distribution for string keys with minimal collisions:
+\subsubsection{Symbol Table Implementation}
+We use a simple array-based implementation for the symbol table, providing efficient storage and lookup:
 
 \begin{verbatim}
-static unsigned long hash_function(const char* str) {
-    unsigned long hash = 5381;
-    int c;
-    while ((c = (unsigned char) *str++)) {
-        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+// Symbol table array implementation
+Symbol symbol_table[MAX_SYMBOLS];
+int symbol_count = 0;
+
+// Simple lookup function
+Symbol* lookup(const char* name) {
+    for (int i = 0; i < symbol_count; i++) {
+        if (strcmp(symbol_table[i].name, name) == 0) {
+            return &symbol_table[i];
+        }
     }
-    return hash;
+    return NULL;
 }
 \end{verbatim}
 
@@ -708,7 +712,7 @@ The scanner continues processing after encountering errors, allowing it to find 
 
 Our lexical analyzer for the C programming language successfully meets all the requirements for a robust scanner. It correctly identifies all C language tokens, maintains detailed symbol and constant tables, tracks context for declarations, assignments, and function calls, reports errors for invalid tokens, and handles complex constructs like strings, comments, and function arguments.
 
-The implementation uses efficient data structures and algorithms, particularly a hash-based symbol table that provides O(1) lookup time. The scanner's modular design and clear documentation make it maintainable and extendable for future enhancements.
+The implementation uses efficient data structures and algorithms, particularly an array-based symbol table that provides straightforward implementation and maintenance. The scanner's modular design and clear documentation make it maintainable and extendable for future enhancements.
 
 Recent improvements, such as associating constants with their variable names, provide additional functionality beyond the basic requirements of a lexical analyzer. These features make our scanner not just a token recognizer but also a valuable tool for gathering information that would be useful in subsequent compilation phases.
 

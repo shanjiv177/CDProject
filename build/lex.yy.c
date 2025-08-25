@@ -1043,62 +1043,58 @@ typedef struct Symbol {
     char* return_type;  
     char* param_lists;  
     int   is_function;  
-    struct Symbol* next;
 } Symbol;
 
-#define SYM_HASH_SIZE 211
-static Symbol* symtab[SYM_HASH_SIZE];
-
-static unsigned long hash_function(const char* str) {
-    unsigned long hash = 5381;
-    int c;
-    while ((c = (unsigned char) *str++)) {
-        hash = ((hash << 5) + hash) + c; 
-    }
-    return hash;
-}
+static Symbol* symbols = NULL;
+static size_t nsymbols = 0, capsymbols = 0;
 
 static Symbol* sym_lookup(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = symtab[h];
-    while (s) {
-        if (strcmp(s->name, name) == 0) {
-            return s;
+    for (size_t i = 0; i < nsymbols; i++) {
+        if (strcmp(symbols[i].name, name) == 0) {
+            return &symbols[i];
         }
-        s = s->next;
     }
     return NULL;
 }
 
-static Symbol* sym_insert(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = (Symbol*)calloc(1, sizeof(Symbol));
-    s->name = xstrdup(name);
-    s->frequency = 0;
-    s->next = symtab[h];
-    symtab[h] = s;
-    return s;
+static Symbol* sym_add(const char* name) {
+    if (nsymbols == capsymbols) {
+        capsymbols = capsymbols ? capsymbols * 2 : 64;
+        symbols = (Symbol*)realloc(symbols, capsymbols * sizeof(Symbol));
+    }
+    
+    symbols[nsymbols].name = xstrdup(name ? name : "");
+    symbols[nsymbols].type = NULL;
+    symbols[nsymbols].dimensions = NULL;
+    symbols[nsymbols].frequency = 0;
+    symbols[nsymbols].return_type = NULL;
+    symbols[nsymbols].param_lists = NULL;
+    symbols[nsymbols].is_function = 0;
+    
+    return &symbols[nsymbols++];
 }
 
 static Symbol* sym_touch(const char* name) {
     Symbol* s = sym_lookup(name);
     if (!s) {
-        s = sym_insert(name);
+        s = sym_add(name);
     }
     s->frequency++;
     return s;
 }
 
-static void sym_set_type(Symbol* s, const char* type) {
+static void sym_set_attribute(Symbol* s, char** field, const char* value) {
     if (!s) return;
-    if (s->type) free(s->type);
-    s->type = xstrdup(type);
+    if (*field) free(*field);
+    *field = xstrdup(value ? value : "");
+}
+
+static void sym_set_type(Symbol* s, const char* type) {
+    sym_set_attribute(s, &s->type, type);
 }
 
 static void sym_set_return(Symbol* s, const char* r) {
-    if (!s) return;
-    if (s->return_type) free(s->return_type);
-    s->return_type = xstrdup(r);
+    sym_set_attribute(s, &s->return_type, r);
 }
 
 static void sym_append_dims(Symbol* s, const char* dims) {
@@ -1145,7 +1141,7 @@ typedef struct Constant {
 static Constant* consts = NULL;
 static size_t nconsts = 0, capconsts = 0;
 
-static void const_add(const char* var, int line, const char* val, const char* type) {
+static Constant* const_add(const char* var, int line, const char* val, const char* type) {
     if (nconsts == capconsts) {
         capconsts = capconsts ? capconsts * 2 : 64;
         consts = (Constant*)realloc(consts, capconsts * sizeof(Constant));
@@ -1154,7 +1150,7 @@ static void const_add(const char* var, int line, const char* val, const char* ty
     consts[nconsts].line = line;
     consts[nconsts].value = xstrdup(val ? val : "");
     consts[nconsts].type = xstrdup(type ? type : "");
-    nconsts++;
+    return &consts[nconsts++];
 }
 
 /* State tracking variables */
@@ -1246,17 +1242,16 @@ static const char* classify_int(const char* s) {
 static void print_symbol_table() {
     printf("\n==== SYMBOL TABLE ====\n");
     printf("%-20s %-15s %-12s %-10s %-15s %s\n", "Name", "Type", "Dimensions", "Frequency", "Return Type", "Parameters Lists in Function call");
-    for (int i = 0; i < SYM_HASH_SIZE; i++) {
-        for (Symbol* s = symtab[i]; s; s = s->next) {
-            printf("%-20s %-15s %-12s %-10d %-15s %s\n",
-                   s->name,
-                   s->type ? s->type : "-",
-                   s->dimensions ? s->dimensions : "-",
-                   s->frequency,
-                   s->return_type ? s->return_type : (s->is_function ? "unknown" : "-"),
-                   s->param_lists ? s->param_lists : "-"
-                  );
-        }
+    for (size_t i = 0; i < nsymbols; i++) {
+        Symbol* s = &symbols[i];
+        printf("%-20s %-15s %-12s %-10d %-15s %s\n",
+               s->name,
+               s->type ? s->type : "-",
+               s->dimensions ? s->dimensions : "-",
+               s->frequency,
+               s->return_type ? s->return_type : (s->is_function ? "unknown" : "-"),
+               s->param_lists ? s->param_lists : "-"
+              );
     }
 }
 
@@ -1272,10 +1267,10 @@ static void print_constant_table() {
               );
     }
 }
-#line 1276 "build/lex.yy.c"
+#line 1271 "build/lex.yy.c"
 /* --------------- Definitions ------------------ */
 
-#line 1279 "build/lex.yy.c"
+#line 1274 "build/lex.yy.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -1500,10 +1495,10 @@ YY_DECL
 		}
 
 	{
-#line 310 "src/scanner.l"
+#line 305 "src/scanner.l"
 
 
-#line 1507 "build/lex.yy.c"
+#line 1502 "build/lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1573,23 +1568,23 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 312 "src/scanner.l"
+#line 307 "src/scanner.l"
 { /* ignore */ }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 313 "src/scanner.l"
+#line 308 "src/scanner.l"
 { /* ignore */ }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 315 "src/scanner.l"
+#line 310 "src/scanner.l"
 { /* ignore single-line comments */ }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 317 "src/scanner.l"
+#line 312 "src/scanner.l"
 {
     BEGIN(COMMENT);
     int depth = 1;
@@ -1626,7 +1621,7 @@ YY_RULE_SETUP
 case 5:
 /* rule 5 can match eol */
 YY_RULE_SETUP
-#line 350 "src/scanner.l"
+#line 345 "src/scanner.l"
 {
     print_token("PREPROC", yytext);
     char* tmp = xstrdup(yytext);
@@ -1659,7 +1654,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 380 "src/scanner.l"
+#line 375 "src/scanner.l"
 {
     print_token("KEYWORD", yytext);
     last_was_ident = 0;
@@ -1667,7 +1662,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 385 "src/scanner.l"
+#line 380 "src/scanner.l"
 {
     print_token("TYPE", yytext);
     if (!in_declaration) {
@@ -1680,7 +1675,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 395 "src/scanner.l"
+#line 390 "src/scanner.l"
 {
     BEGIN(STRING);
     yyless(0);
@@ -1688,7 +1683,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 399 "src/scanner.l"
+#line 394 "src/scanner.l"
 {
     print_token("STRING", yytext);
     const_add(in_assignment ? current_var : "-", yylineno, yytext, "string");
@@ -1699,7 +1694,7 @@ YY_RULE_SETUP
 case 10:
 /* rule 10 can match eol */
 YY_RULE_SETUP
-#line 405 "src/scanner.l"
+#line 400 "src/scanner.l"
 {
     /* continued line inside string - treat as part of string */
 }
@@ -1707,7 +1702,7 @@ YY_RULE_SETUP
 case 11:
 /* rule 11 can match eol */
 YY_RULE_SETUP
-#line 408 "src/scanner.l"
+#line 403 "src/scanner.l"
 {
     fprintf(stderr, "[line %d] ERROR: Unterminated string literal\n", yylineno - 1);
     BEGIN(INITIAL);
@@ -1715,12 +1710,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 412 "src/scanner.l"
+#line 407 "src/scanner.l"
 { /* consume */ }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 414 "src/scanner.l"
+#line 409 "src/scanner.l"
 {
     BEGIN(CHARLIT);
     yyless(0);
@@ -1728,7 +1723,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 418 "src/scanner.l"
+#line 413 "src/scanner.l"
 {
     print_token("CHAR", yytext);
     const_add(in_assignment ? current_var : "-", yylineno, yytext, "char");
@@ -1739,7 +1734,7 @@ YY_RULE_SETUP
 case 15:
 /* rule 15 can match eol */
 YY_RULE_SETUP
-#line 424 "src/scanner.l"
+#line 419 "src/scanner.l"
 {
     fprintf(stderr, "[line %d] ERROR: Unterminated char literal\n", yylineno - 1);
     BEGIN(INITIAL);
@@ -1747,12 +1742,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 428 "src/scanner.l"
+#line 423 "src/scanner.l"
 { /* consume */ }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 430 "src/scanner.l"
+#line 425 "src/scanner.l"
 {
     fprintf(stderr, "[line %d] ERROR: Invalid float literal '%s'\n", yylineno, yytext);
     last_was_ident = 0;
@@ -1760,7 +1755,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 435 "src/scanner.l"
+#line 430 "src/scanner.l"
 {
     fprintf(stderr, "[line %d] ERROR: Invalid number '%s'\n", yylineno, yytext);
     last_was_ident = 0;
@@ -1773,7 +1768,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 440 "src/scanner.l"
+#line 435 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "float"); in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 20:
@@ -1783,7 +1778,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 441 "src/scanner.l"
+#line 436 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "float"); in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 21:
@@ -1793,7 +1788,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 442 "src/scanner.l"
+#line 437 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "float"); in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 22:
@@ -1803,7 +1798,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 443 "src/scanner.l"
+#line 438 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "float"); in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 23:
@@ -1813,7 +1808,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 444 "src/scanner.l"
+#line 439 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "hex");   in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 24:
@@ -1823,7 +1818,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 445 "src/scanner.l"
+#line 440 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "bin");   in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 25:
@@ -1833,7 +1828,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 446 "src/scanner.l"
+#line 441 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, "oct");   in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 26:
@@ -1843,12 +1838,12 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 447 "src/scanner.l"
+#line 442 "src/scanner.l"
 { print_token("NUMBER", yytext); const_add(in_assignment ? current_var : "-", yylineno, yytext, classify_int(yytext)); in_assignment = 0; last_was_ident = 0; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 449 "src/scanner.l"
+#line 444 "src/scanner.l"
 {
     print_token("IDENT", yytext);
     Symbol* s = sym_touch(yytext);
@@ -1865,7 +1860,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 463 "src/scanner.l"
+#line 458 "src/scanner.l"
 {
     print_token("PUNCT", yytext);
     if (last_was_ident) {
@@ -1887,7 +1882,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 481 "src/scanner.l"
+#line 476 "src/scanner.l"
 {
     /* collect raw text inside args */
     for (size_t i = 0; i < yyleng; i++) {
@@ -1897,12 +1892,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 487 "src/scanner.l"
+#line 482 "src/scanner.l"
 { args_push_char('('); paren_depth++; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 488 "src/scanner.l"
+#line 483 "src/scanner.l"
 {
     args_push_char(')');
     paren_depth--;
@@ -1915,17 +1910,17 @@ YY_RULE_SETUP
 case 32:
 /* rule 32 can match eol */
 YY_RULE_SETUP
-#line 496 "src/scanner.l"
+#line 491 "src/scanner.l"
 { args_push_char('\n'); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 498 "src/scanner.l"
+#line 493 "src/scanner.l"
 { print_token("PUNCT", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 500 "src/scanner.l"
+#line 495 "src/scanner.l"
 {
     print_token("PUNCT", yytext);
     if (array_capture_for_ident) {
@@ -1939,12 +1934,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 510 "src/scanner.l"
+#line 505 "src/scanner.l"
 { print_token("PUNCT", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 512 "src/scanner.l"
+#line 507 "src/scanner.l"
 {
     print_token("PUNCT", yytext);
     array_capture_for_ident = 0;
@@ -1957,12 +1952,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 521 "src/scanner.l"
+#line 516 "src/scanner.l"
 { print_token("PUNCT", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 522 "src/scanner.l"
+#line 517 "src/scanner.l"
 {
     print_token("PUNCT", yytext);
     if (in_declaration) {
@@ -1973,57 +1968,57 @@ YY_RULE_SETUP
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 529 "src/scanner.l"
+#line 524 "src/scanner.l"
 { print_token("PUNCT", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 531 "src/scanner.l"
+#line 526 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 532 "src/scanner.l"
+#line 527 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 533 "src/scanner.l"
+#line 528 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 534 "src/scanner.l"
+#line 529 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 535 "src/scanner.l"
+#line 530 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 536 "src/scanner.l"
+#line 531 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 537 "src/scanner.l"
+#line 532 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 538 "src/scanner.l"
+#line 533 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 539 "src/scanner.l"
+#line 534 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 540 "src/scanner.l"
+#line 535 "src/scanner.l"
 { 
     print_token("OP", yytext); 
     if (last_was_ident) {
@@ -2036,32 +2031,32 @@ YY_RULE_SETUP
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 549 "src/scanner.l"
+#line 544 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 550 "src/scanner.l"
+#line 545 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 551 "src/scanner.l"
+#line 546 "src/scanner.l"
 { print_token("OP", yytext); last_was_ident = 0; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 553 "src/scanner.l"
+#line 548 "src/scanner.l"
 {
     fprintf(stderr, "[line %d] ERROR: Invalid token '%s'\n", yylineno, yytext);
 }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 557 "src/scanner.l"
+#line 552 "src/scanner.l"
 ECHO;
 	YY_BREAK
-#line 2065 "build/lex.yy.c"
+#line 2060 "build/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(STRING):
@@ -3085,7 +3080,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 557 "src/scanner.l"
+#line 552 "src/scanner.l"
 
 
 int main(int argc, char **argv) {
@@ -3100,6 +3095,25 @@ int main(int argc, char **argv) {
     yylex();
     print_symbol_table();
     print_constant_table();
+    
+    // Free memory - Symbol Table
+    for (size_t i = 0; i < nsymbols; i++) {
+        free(symbols[i].name);
+        if (symbols[i].type) free(symbols[i].type);
+        if (symbols[i].dimensions) free(symbols[i].dimensions);
+        if (symbols[i].return_type) free(symbols[i].return_type);
+        if (symbols[i].param_lists) free(symbols[i].param_lists);
+    }
+    free(symbols);
+    
+    // Free memory - Constant Table
+    for (size_t i = 0; i < nconsts; i++) {
+        free(consts[i].var_name);
+        free(consts[i].value);
+        free(consts[i].type);
+    }
+    free(consts);
+    
     return 0;
 }
 

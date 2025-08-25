@@ -251,7 +251,7 @@ Start  STRING State       INITIAL
 
 ## 6. Symbol Table Implementation
 
-The symbol table is a crucial component of the scanner that efficiently tracks all identifiers encountered in the source code. It is implemented as a hash table to provide O(1) average-case lookup time.
+The symbol table is a crucial component of the scanner that efficiently tracks all identifiers encountered in the source code. It is implemented as a dynamic array that grows as needed.
 
 ### 6.1 Symbol Table Data Structure
 
@@ -264,14 +264,119 @@ typedef struct Symbol {
     char* return_type;  // Return type for functions
     char* param_lists;  // Parameter lists for function calls
     int   is_function;  // Flag to indicate if it's a function
-    struct Symbol* next; // Next entry in hash chain (for collision handling)
 } Symbol;
 
-#define SYM_HASH_SIZE 211
-static Symbol* symtab[SYM_HASH_SIZE];
+static Symbol* symbols = NULL;
+static size_t nsymbols = 0, capsymbols = 0;
 ```
 
-The symbol table uses a hash table with 211 buckets. Each bucket is a linked list of symbols, allowing for collision resolution through chaining.
+The symbol table uses a dynamic array that starts with 0 capacity and doubles in size whenever it needs to grow. This provides efficient memory usage while allowing for unlimited symbols.
+
+### 6.2 Symbol Table Operations
+
+#### 6.2.1 Symbol Lookup
+
+```c
+static Symbol* sym_lookup(const char* name) {
+    for (size_t i = 0; i < nsymbols; i++) {
+        if (strcmp(symbols[i].name, name) == 0) {
+            return &symbols[i];
+        }
+    }
+    return NULL;
+}
+```
+
+This function searches for a symbol by name:
+
+- Performs a linear search through the array
+- Compares each symbol's name to the target name
+- Returns a pointer to the symbol if found, or NULL if not found
+
+#### 6.2.2 Symbol Addition
+
+```c
+static Symbol* sym_add(const char* name) {
+    if (nsymbols == capsymbols) {
+        capsymbols = capsymbols ? capsymbols * 2 : 64;
+        symbols = (Symbol*)realloc(symbols, capsymbols * sizeof(Symbol));
+    }
+    
+    symbols[nsymbols].name = xstrdup(name ? name : "");
+    symbols[nsymbols].type = NULL;
+    symbols[nsymbols].dimensions = NULL;
+    symbols[nsymbols].frequency = 0;
+    symbols[nsymbols].return_type = NULL;
+    symbols[nsymbols].param_lists = NULL;
+    symbols[nsymbols].is_function = 0;
+    
+    return &symbols[nsymbols++];
+}
+```
+
+This function adds a new symbol to the table:
+
+- Resizes the array if necessary (doubling its capacity or starting with 64)
+- Initializes all fields with default values
+- Returns a pointer to the newly added symbol
+
+#### 6.2.3 Symbol Access and Update
+
+```c
+static Symbol* sym_touch(const char* name) {
+    Symbol* s = sym_lookup(name);
+    if (!s) {
+        s = sym_add(name);
+    }
+    s->frequency++;
+    return s;
+}
+```
+
+This function is used to access a symbol, creating it if it doesn't exist:
+
+- Looks up the symbol by name
+- If not found, adds a new symbol
+- Increments the frequency counter (tracks usage)
+- Returns the symbol
+
+#### 6.2.4 Setting Symbol Attributes
+
+Several functions update the attributes of symbols:
+
+```c
+static void sym_set_attribute(Symbol* s, char** field, const char* value) {
+    if (!s) return;
+    if (*field) free(*field);
+    *field = xstrdup(value ? value : "");
+}
+
+static void sym_set_type(Symbol* s, const char* type) {
+    sym_set_attribute(s, &s->type, type);
+}
+
+static void sym_set_return(Symbol* s, const char* r) {
+    sym_set_attribute(s, &s->return_type, r);
+}
+```
+
+These functions handle:
+
+- Setting the data type of a variable or function
+- Setting the return type of a function
+- Managing memory to avoid leaks when updating fields
+
+There are also specialized append functions for complex fields:
+
+```c
+static void sym_append_dims(Symbol* s, const char* dims) {
+    // Implementation for appending array dimensions
+}
+
+static void sym_append_params(Symbol* s, const char* params) {
+    // Implementation for appending function parameters
+}
+```
 
 ### 6.2 Hash Function
 
@@ -495,7 +600,191 @@ The symbol table is used throughout the scanner to track and update information 
 
 The symbol table's efficient lookup and update operations enable the scanner to maintain detailed contextual information about all identifiers in the source code, which is essential for later phases of compilation.
 
-## 7. Test Cases with Results
+## 7. Constant Table Implementation
+
+In addition to the symbol table, the scanner also maintains a constant table to track literal values encountered in the source code. This feature allows for traceability between variables and the constants assigned to them.
+
+### 7.1 Constant Table Data Structure
+
+```c
+typedef struct Constant {
+    char* var_name;  // Name of the variable this constant is assigned to, or "-" if not in an assignment
+    int   line;      // Line number where the constant appears
+    char* value;     // The literal string representation of the constant
+    char* type;      // Type of the constant (string, char, float, int, hex, bin, oct, etc.)
+} Constant;
+
+static Constant* consts = NULL;
+static size_t nconsts = 0, capconsts = 0;
+```
+
+The constant table is implemented as a dynamic array that grows as needed when new constants are encountered. Each entry stores information about a constant and its context.
+
+### 7.2 Constant Table Operations
+
+#### 7.2.1 Constant Lookup
+
+```c
+static Constant* const_lookup(const char* value, const char* type) {
+    for (size_t i = 0; i < nconsts; i++) {
+        if (strcmp(consts[i].value, value) == 0 && 
+            (type == NULL || strcmp(consts[i].type, type) == 0)) {
+            return &consts[i];
+        }
+    }
+    return NULL;
+}
+```
+
+This function searches for a constant by value and optionally type:
+
+- Performs a linear search through the array
+- Compares each constant's value and type to the target values
+- Returns a pointer to the constant if found, or NULL if not found
+
+#### 7.2.2 Adding Constants
+
+```c
+static Constant* const_add(const char* var, int line, const char* val, const char* type) {
+    if (nconsts == capconsts) {
+        capconsts = capconsts ? capconsts * 2 : 64;
+        consts = (Constant*)realloc(consts, capconsts * sizeof(Constant));
+    }
+    consts[nconsts].var_name = xstrdup(var ? var : "-");
+    consts[nconsts].line = line;
+    consts[nconsts].value = xstrdup(val ? val : "");
+    consts[nconsts].type = xstrdup(type ? type : "");
+    return &consts[nconsts++];
+}
+```
+
+This function adds a new constant to the table:
+
+- Resizes the array if necessary (doubling its capacity or starting with 64)
+- Stores the variable name, line number, constant value, and type
+- Uses xstrdup to create copies of strings to avoid reference issues
+- Returns a pointer to the newly added constant
+
+#### 7.2.3 Setting Constant Attributes
+
+Several functions update the attributes of constants:
+
+```c
+static void const_set_var_name(Constant* c, const char* var_name) {
+    if (!c) return;
+    if (c->var_name) free(c->var_name);
+    c->var_name = xstrdup(var_name ? var_name : "-");
+}
+
+static void const_set_value(Constant* c, const char* value) {
+    if (!c) return;
+    if (c->value) free(c->value);
+    c->value = xstrdup(value ? value : "");
+}
+
+static void const_set_type(Constant* c, const char* type) {
+    if (!c) return;
+    if (c->type) free(c->type);
+    c->type = xstrdup(type ? type : "");
+}
+```
+
+These functions allow for updating constant attributes while properly managing memory.
+
+#### 7.2.2 Assignment Detection
+
+The scanner keeps track of assignment operations to associate constants with the variables they are assigned to:
+
+```c
+static int in_assignment = 0;
+static char current_var[256] = {0};
+
+"="         { 
+    print_token("OP", yytext); 
+    if (last_was_ident) {
+        in_assignment = 1;
+        strncpy(current_var, last_ident, sizeof(current_var) - 1);
+        current_var[sizeof(current_var) - 1] = '\0';
+    }
+    last_was_ident = 0; 
+}
+```
+
+When an assignment operator is encountered:
+
+- If the last token was an identifier, the scanner enters an "assignment state"
+- The current variable name is stored
+- When a constant is encountered while in this state, it's associated with the variable
+
+#### 7.2.3 Constant Table Output
+
+```c
+static void print_constant_table() {
+    printf("\n==== CONSTANT TABLE ====\n");
+    printf("%-20s %-10s %-30s %s\n", "Variable Name", "Line No.", "Value", "Type");
+    for (size_t i = 0; i < nconsts; i++) {
+        printf("%-20s %-10d %-30s %s\n",
+               consts[i].var_name ? consts[i].var_name : "-",
+               consts[i].line,
+               consts[i].value ? consts[i].value : "",
+               consts[i].type ? consts[i].type : ""
+              );
+    }
+}
+```
+
+This function displays the constant table in a formatted way:
+
+- Prints a header with column titles
+- For each constant, shows the variable it's assigned to (if any), line number, value, and type
+
+### 7.3 Constant Types
+
+The scanner distinguishes between several types of constants:
+
+1. **Numeric Constants**:
+   - `int`: Standard decimal integers
+   - `hex`: Hexadecimal numbers (starting with 0x/0X)
+   - `bin`: Binary numbers (starting with 0b/0B)
+   - `oct`: Octal numbers (starting with 0)
+   - `float`: Floating-point numbers (various formats)
+
+2. **String and Character Constants**:
+   - `string`: Text enclosed in double quotes
+   - `char`: Characters enclosed in single quotes
+
+3. **Other Constants**:
+   - `macro`: Values defined in preprocessor macros
+
+### 7.4 Constant Table Usage in the Scanner
+
+Constants are tracked in various patterns throughout the scanner:
+
+```c
+{FLOAT1}{FLOATSUF}?/[^.0-9A-Za-z_]   { 
+    print_token("NUMBER", yytext); 
+    const_add(in_assignment ? current_var : "-", yylineno, yytext, "float"); 
+    in_assignment = 0; 
+    last_was_ident = 0; 
+}
+
+<STRING>\"([^"\\\n]|{ESC})*\" { 
+    print_token("STRING", yytext);
+    const_add(in_assignment ? current_var : "-", yylineno, yytext, "string");
+    in_assignment = 0;
+    BEGIN(INITIAL);
+}
+```
+
+For each constant encountered:
+
+- The constant's value and type are recorded
+- If in an assignment context, the variable name is recorded
+- The assignment state is reset
+
+This tracking allows the scanner to provide detailed information about constant usage and variable initialization throughout the source code.
+
+## 8. Test Cases with Results
 
 ### 6.1 Test Case 1: Valid C Code (test1.c)
 

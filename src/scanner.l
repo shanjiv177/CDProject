@@ -48,62 +48,58 @@ typedef struct Symbol {
     char* return_type;  
     char* param_lists;  
     int   is_function;  
-    struct Symbol* next;
 } Symbol;
 
-#define SYM_HASH_SIZE 211
-static Symbol* symtab[SYM_HASH_SIZE];
-
-static unsigned long hash_function(const char* str) {
-    unsigned long hash = 5381;
-    int c;
-    while ((c = (unsigned char) *str++)) {
-        hash = ((hash << 5) + hash) + c; 
-    }
-    return hash;
-}
+static Symbol* symbols = NULL;
+static size_t nsymbols = 0, capsymbols = 0;
 
 static Symbol* sym_lookup(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = symtab[h];
-    while (s) {
-        if (strcmp(s->name, name) == 0) {
-            return s;
+    for (size_t i = 0; i < nsymbols; i++) {
+        if (strcmp(symbols[i].name, name) == 0) {
+            return &symbols[i];
         }
-        s = s->next;
     }
     return NULL;
 }
 
-static Symbol* sym_insert(const char* name) {
-    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
-    Symbol* s = (Symbol*)calloc(1, sizeof(Symbol));
-    s->name = xstrdup(name);
-    s->frequency = 0;
-    s->next = symtab[h];
-    symtab[h] = s;
-    return s;
+static Symbol* sym_add(const char* name) {
+    if (nsymbols == capsymbols) {
+        capsymbols = capsymbols ? capsymbols * 2 : 64;
+        symbols = (Symbol*)realloc(symbols, capsymbols * sizeof(Symbol));
+    }
+    
+    symbols[nsymbols].name = xstrdup(name ? name : "");
+    symbols[nsymbols].type = NULL;
+    symbols[nsymbols].dimensions = NULL;
+    symbols[nsymbols].frequency = 0;
+    symbols[nsymbols].return_type = NULL;
+    symbols[nsymbols].param_lists = NULL;
+    symbols[nsymbols].is_function = 0;
+    
+    return &symbols[nsymbols++];
 }
 
 static Symbol* sym_touch(const char* name) {
     Symbol* s = sym_lookup(name);
     if (!s) {
-        s = sym_insert(name);
+        s = sym_add(name);
     }
     s->frequency++;
     return s;
 }
 
-static void sym_set_type(Symbol* s, const char* type) {
+static void sym_set_attribute(Symbol* s, char** field, const char* value) {
     if (!s) return;
-    if (s->type) free(s->type);
-    s->type = xstrdup(type);
+    if (*field) free(*field);
+    *field = xstrdup(value ? value : "");
+}
+
+static void sym_set_type(Symbol* s, const char* type) {
+    sym_set_attribute(s, &s->type, type);
 }
 
 static void sym_set_return(Symbol* s, const char* r) {
-    if (!s) return;
-    if (s->return_type) free(s->return_type);
-    s->return_type = xstrdup(r);
+    sym_set_attribute(s, &s->return_type, r);
 }
 
 static void sym_append_dims(Symbol* s, const char* dims) {
@@ -150,7 +146,7 @@ typedef struct Constant {
 static Constant* consts = NULL;
 static size_t nconsts = 0, capconsts = 0;
 
-static void const_add(const char* var, int line, const char* val, const char* type) {
+static Constant* const_add(const char* var, int line, const char* val, const char* type) {
     if (nconsts == capconsts) {
         capconsts = capconsts ? capconsts * 2 : 64;
         consts = (Constant*)realloc(consts, capconsts * sizeof(Constant));
@@ -159,7 +155,7 @@ static void const_add(const char* var, int line, const char* val, const char* ty
     consts[nconsts].line = line;
     consts[nconsts].value = xstrdup(val ? val : "");
     consts[nconsts].type = xstrdup(type ? type : "");
-    nconsts++;
+    return &consts[nconsts++];
 }
 
 /* State tracking variables */
@@ -251,17 +247,16 @@ static const char* classify_int(const char* s) {
 static void print_symbol_table() {
     printf("\n==== SYMBOL TABLE ====\n");
     printf("%-20s %-15s %-12s %-10s %-15s %s\n", "Name", "Type", "Dimensions", "Frequency", "Return Type", "Parameters Lists in Function call");
-    for (int i = 0; i < SYM_HASH_SIZE; i++) {
-        for (Symbol* s = symtab[i]; s; s = s->next) {
-            printf("%-20s %-15s %-12s %-10d %-15s %s\n",
-                   s->name,
-                   s->type ? s->type : "-",
-                   s->dimensions ? s->dimensions : "-",
-                   s->frequency,
-                   s->return_type ? s->return_type : (s->is_function ? "unknown" : "-"),
-                   s->param_lists ? s->param_lists : "-"
-                  );
-        }
+    for (size_t i = 0; i < nsymbols; i++) {
+        Symbol* s = &symbols[i];
+        printf("%-20s %-15s %-12s %-10d %-15s %s\n",
+               s->name,
+               s->type ? s->type : "-",
+               s->dimensions ? s->dimensions : "-",
+               s->frequency,
+               s->return_type ? s->return_type : (s->is_function ? "unknown" : "-"),
+               s->param_lists ? s->param_lists : "-"
+              );
     }
 }
 
@@ -568,5 +563,24 @@ int main(int argc, char **argv) {
     yylex();
     print_symbol_table();
     print_constant_table();
+    
+    // Free memory - Symbol Table
+    for (size_t i = 0; i < nsymbols; i++) {
+        free(symbols[i].name);
+        if (symbols[i].type) free(symbols[i].type);
+        if (symbols[i].dimensions) free(symbols[i].dimensions);
+        if (symbols[i].return_type) free(symbols[i].return_type);
+        if (symbols[i].param_lists) free(symbols[i].param_lists);
+    }
+    free(symbols);
+    
+    // Free memory - Constant Table
+    for (size_t i = 0; i < nconsts; i++) {
+        free(consts[i].var_name);
+        free(consts[i].value);
+        free(consts[i].type);
+    }
+    free(consts);
+    
     return 0;
 }
