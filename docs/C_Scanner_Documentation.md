@@ -241,6 +241,7 @@ Start  STRING State       INITIAL
 4. **Type Qualifiers**: Type qualifiers like `const` and `volatile` are treated as regular keywords rather than as part of type declarations.
 
 5. **Symbol Table Information**: The scanner tracks additional information beyond basic token recognition, including:
+
    - Variable types
    - Function parameters
    - Array dimensions
@@ -248,7 +249,253 @@ Start  STRING State       INITIAL
 
 6. **Variable-Constant Association**: The scanner associates constants with the variables they are assigned to, which is not a requirement of a basic lexical analyzer.
 
-## 6. Test Cases with Results
+## 6. Symbol Table Implementation
+
+The symbol table is a crucial component of the scanner that efficiently tracks all identifiers encountered in the source code. It is implemented as a hash table to provide O(1) average-case lookup time.
+
+### 6.1 Symbol Table Data Structure
+
+```c
+typedef struct Symbol {
+    char* name;         // Identifier name
+    char* type;         // Data type (int, char, etc.)
+    char* dimensions;   // Array dimensions, if any
+    int   frequency;    // Number of occurrences
+    char* return_type;  // Return type for functions
+    char* param_lists;  // Parameter lists for function calls
+    int   is_function;  // Flag to indicate if it's a function
+    struct Symbol* next; // Next entry in hash chain (for collision handling)
+} Symbol;
+
+#define SYM_HASH_SIZE 211
+static Symbol* symtab[SYM_HASH_SIZE];
+```
+
+The symbol table uses a hash table with 211 buckets. Each bucket is a linked list of symbols, allowing for collision resolution through chaining.
+
+### 6.2 Hash Function
+
+```c
+static unsigned long hash_function(const char* str) {
+    unsigned long hash = 5381;
+    int c;
+    while ((c = (unsigned char) *str++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+    return hash;
+}
+```
+
+The scanner uses the DJB2 hash algorithm, which provides a good distribution for string keys with minimal collisions. This function:
+
+- Starts with a seed value of 5381
+- For each character in the string, multiplies the current hash by 33 and adds the ASCII value of the character
+- Returns the final hash value
+
+### 6.3 Symbol Table Operations
+
+#### 6.3.1 Symbol Lookup
+
+```c
+static Symbol* sym_lookup(const char* name) {
+    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
+    Symbol* s = symtab[h];
+    while (s) {
+        if (strcmp(s->name, name) == 0) {
+            return s;
+        }
+        s = s->next;
+    }
+    return NULL;
+}
+```
+
+This function searches for a symbol by name:
+
+- Computes the hash value of the name
+- Follows the linked list in the corresponding bucket
+- Returns the symbol if found, or NULL if not found
+
+#### 6.3.2 Symbol Insertion
+
+```c
+static Symbol* sym_insert(const char* name) {
+    unsigned long h = hash_function(name) % SYM_HASH_SIZE;
+    Symbol* s = (Symbol*)calloc(1, sizeof(Symbol));
+    s->name = xstrdup(name);
+    s->frequency = 0;
+    s->next = symtab[h];
+    symtab[h] = s;
+    return s;
+}
+```
+
+This function inserts a new symbol into the table:
+
+- Computes the hash value of the name
+- Allocates memory for a new symbol structure
+- Duplicates the name string to avoid reference issues
+- Initializes frequency to 0
+- Adds the new symbol to the front of the linked list in the bucket
+- Returns the newly inserted symbol
+
+#### 6.3.3 Symbol Access and Update
+
+```c
+static Symbol* sym_touch(const char* name) {
+    Symbol* s = sym_lookup(name);
+    if (!s) {
+        s = sym_insert(name);
+    }
+    s->frequency++;
+    return s;
+}
+```
+
+This function is used to access a symbol, creating it if it doesn't exist:
+
+- Looks up the symbol by name
+- If not found, inserts a new symbol
+- Increments the frequency counter (tracks usage)
+- Returns the symbol
+
+#### 6.3.4 Setting Symbol Attributes
+
+Several functions update the attributes of symbols:
+
+```c
+static void sym_set_type(Symbol* s, const char* type) {
+    if (!s) return;
+    if (s->type) free(s->type);
+    s->type = xstrdup(type);
+}
+
+static void sym_set_return(Symbol* s, const char* r) {
+    if (!s) return;
+    if (s->return_type) free(s->return_type);
+    s->return_type = xstrdup(r);
+}
+
+static void sym_append_dims(Symbol* s, const char* dims) {
+    if (!s || !dims) return;
+    size_t old = s->dimensions ? strlen(s->dimensions) : 0;
+    size_t add = strlen(dims);
+    char* p = (char*)malloc(old + add + 1);
+    if (!p) return;
+    if (old) {
+        memcpy(p, s->dimensions, old);
+        free(s->dimensions);
+    }
+    memcpy(p + old, dims, add);
+    p[old + add] = '\0';
+    s->dimensions = p;
+}
+
+static void sym_append_params(Symbol* s, const char* params) {
+    if (!s || !params) return;
+    const char* sep = s->param_lists ? " ; " : "";
+    size_t old = s->param_lists ? strlen(s->param_lists) : 0;
+    size_t add = strlen(sep) + strlen(params);
+    char* p = (char*)malloc(old + add + 1);
+    if (!p) return;
+    if (old) {
+        memcpy(p, s->param_lists, old);
+        free(s->param_lists);
+    }
+    memcpy(p + old, sep, strlen(sep));
+    memcpy(p + old + strlen(sep), params, strlen(params));
+    p[old + add] = '\0';
+    s->param_lists = p;
+}
+```
+
+These functions handle:
+
+- Setting the data type of a variable or function
+- Setting the return type of a function
+- Appending array dimensions to a variable
+- Appending parameter lists to a function
+
+#### 6.3.5 Symbol Table Output
+
+```c
+static void print_symbol_table() {
+    printf("\n==== SYMBOL TABLE ====\n");
+    printf("%-20s %-15s %-12s %-10s %-15s %s\n", "Name", "Type", "Dimensions", "Frequency", "Return Type", "Parameters Lists in Function call");
+    for (int i = 0; i < SYM_HASH_SIZE; i++) {
+        for (Symbol* s = symtab[i]; s; s = s->next) {
+            printf("%-20s %-15s %-12s %-10d %-15s %s\n",
+                   s->name,
+                   s->type ? s->type : "-",
+                   s->dimensions ? s->dimensions : "-",
+                   s->frequency,
+                   s->return_type ? s->return_type : (s->is_function ? "unknown" : "-"),
+                   s->param_lists ? s->param_lists : "-"
+                  );
+        }
+    }
+}
+```
+
+This function prints the entire symbol table in a formatted way:
+
+- Iterates through all buckets in the hash table
+- For each bucket, traverses the linked list of symbols
+- Prints each symbol's attributes in columns
+
+### 6.4 Symbol Table Usage in the Scanner
+
+The symbol table is used throughout the scanner to track and update information about identifiers:
+
+1. **When an identifier is encountered**:
+   ```c
+   {ID}        {
+       print_token("IDENT", yytext);
+       Symbol* s = sym_touch(yytext);
+       strncpy(last_ident, yytext, sizeof(last_ident) - 1);
+       last_was_ident = 1;
+       array_capture_for_ident = 1;
+       if (in_declaration) {
+           if (!s->type) {
+               sym_set_type(s, last_type);
+           }
+       }
+   }
+   ```
+   - The identifier is "touched" (created if new, frequency incremented)
+   - If in a declaration, its type is set
+
+2. **When an array dimension is encountered**:
+   ```c
+   "["{WS}*{DIGIT}+{WS}*"]" {
+       print_token("PUNCT", yytext);
+       if (array_capture_for_ident) {
+           Symbol* s = sym_lookup(last_ident);
+           if (s) {
+               sym_append_dims(s, yytext);
+           }
+       }
+       last_was_ident = 0;
+   }
+   ```
+   - The dimensions are appended to the last identifier
+
+3. **When a function call is detected**:
+   ```c
+   if (last_was_ident) {
+       Symbol* s = sym_lookup(last_ident);
+       if (s) {
+           s->is_function = 1;
+           args_begin(s);
+       }
+   }
+   ```
+   - The identifier is marked as a function
+   - Parameter capturing begins
+
+The symbol table's efficient lookup and update operations enable the scanner to maintain detailed contextual information about all identifiers in the source code, which is essential for later phases of compilation.
+
+## 7. Test Cases with Results
 
 ### 6.1 Test Case 1: Valid C Code (test1.c)
 
