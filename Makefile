@@ -18,7 +18,7 @@ SCANNER_BIN = $(BIN_DIR)/scanner
 TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 
 # Make sure build and bin directories exist
-$(shell mkdir -p $(BUILD_DIR) $(BIN_DIR))
+$(mkdir -p $(BUILD_DIR) $(BIN_DIR))
 
 # Default target
 all: $(SCANNER_BIN)
