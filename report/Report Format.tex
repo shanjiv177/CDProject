@@ -88,7 +88,7 @@
 \vspace{0.5cm}
 {\textbf{Prabhav S Korwar}} (Roll No: 231CS141)\\
 \vspace{0.5cm}
-{\textbf{Akshaj PVY}} (Roll No: 231CS1xx)\\
+{\textbf{Akshaj PVY}} (Roll No: 231CS109)\\
 
 
 \vspace{0.3cm}
@@ -491,6 +491,7 @@ The scanner recognizes both single-line and multi-line comments using the follow
     \node[state, fill=yellow!10] (q1) at (4,0) {$q_1$};
     \node[state, accepting, fill=green!10] (q2) at (7,3) {$q_2$};
     \node[state, fill=orange!10] (q3) at (7,-3) {$q_3$};
+    \node[state, fill=red!10] (q6) at (7,-6) {$q_6$};
     \node[state, fill=purple!10] (q4) at (11,-3) {$q_4$};
     \node[state, accepting, fill=green!10] (q5) at (15,-3) {$q_5$};
     
@@ -500,8 +501,11 @@ The scanner recognizes both single-line and multi-line comments using the follow
     \draw[->, thick] (q1) to[out=315, in=180] node[below] {*} (q3);
     \draw[->, thick] (q2) edge[loop above] node {any except \textbackslash n} (q2);
     \draw[->, thick] (q2) to[out=150, in=90, looseness=1.2] node[above] {\textbackslash n} (q0);
-    \draw[->, thick] (q3) edge[loop below] node {any except *} (q3);
+    \draw[->, thick] (q3) edge[loop below] node {any except * or /} (q3);
     \draw[->, thick] (q3) -- node[above] {*} (q4);
+    \draw[->, thick] (q3) -- node[left] {/} (q6);
+    \draw[->, thick] (q6) -- node[below] {*} (q3);
+    \draw[->, thick] (q6) edge[loop below] node {any except *} (q6);
     \draw[->, thick] (q4) edge[loop below] node {*} (q4);
     \draw[->, thick] (q4) -- node[above] {/} (q5);
     \draw[->, thick] (q4) to[out=225, in=315, looseness=1.2] node[below] {any except * or /} (q3);
@@ -512,7 +516,8 @@ The scanner recognizes both single-line and multi-line comments using the follow
         \begin{tabular}{l}
             \textbf{Comment Types:} \\
             - Single-line: \texttt{// comment} \\
-            - Multi-line: \texttt{/* comment */}
+            - Multi-line: \texttt{/* comment */} \\
+            - Nested comments trigger warning
         \end{tabular}
     };
 \end{tikzpicture}
@@ -527,6 +532,7 @@ States in the comment DFA:
     \item $q_3$: In multi-line comment
     \item $q_4$: Potentially ending multi-line comment
     \item $q_5$: End of multi-line comment
+    \item $q_6$: Potential nested comment start (triggers warning)
 \end{itemize}
 
 \section{Assumptions Made Beyond the Basic Language Description}
@@ -536,7 +542,7 @@ In implementing our scanner, we made several assumptions and design decisions th
 \begin{enumerate}
     \item \textbf{Multi-character Constants}: The scanner accepts multi-character constants like \texttt{'xy'} even though they're not standard C, treating them as valid character literals.
     
-    \item \textbf{Nested Comments}: The scanner handles nested comments like \texttt{/* outer /* inner */ outer */} by ignoring everything until the first closing \texttt{*/} is found.
+    \item \textbf{Nested Comments}: The scanner detects attempted nested comments like \texttt{/* outer /* inner */ outer */} and issues a warning as they are not supported in standard C. Following the behavior of standard C compilers, it treats the first closing \texttt{*/} it encounters as the end of the comment.
     
     \item \textbf{Identifier Length}: No limit is enforced on identifier length, allowing arbitrarily long identifiers.
     
@@ -666,6 +672,207 @@ Name                 Type         Frequency  Return Type  Parameters Lists
 multiply             int          2          int          int x, int y ; 6, 7
 product              int          1          -            -
 main                 int          1          int          -
+\end{verbatim}
+
+\section{Test Cases}
+
+This section contains all the test cases used to validate our lexical analyzer.
+
+\subsection{Test Case 1: Valid C Code}
+
+This test case validates the scanner's ability to recognize basic C tokens in a valid program.
+
+\begin{verbatim}
+// Test Case 1: Valid C code
+#include <stdio.h>
+int main() {
+    int a = 10;
+    float b = 20.5;
+    char c = 'x';
+    printf("Hello World\n");
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 2: Invalid Tokens and Errors}
+
+This test case checks the scanner's error detection for invalid tokens and malformed literals.
+
+\begin{verbatim}
+// Test Case 2: Invalid tokens and errors
+#include <stdio.h>
+int main() {
+    int a = 10$;
+    float b = 20.5.3;
+    char c = 'xy';
+    printf("Hello World\n");
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 3: Comments and Nested Comments}
+
+This test case verifies how the scanner handles comments, including nested comments.
+
+\begin{verbatim}
+// Test Case 3: Comments and nested comments
+#include <stdio.h>
+/* This is a comment
+   /* Nested comment */
+   End of comment */
+int main() {
+    // Single line comment
+    int x = 42;
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 4: Preprocessor Directives and Function Call}
+
+This test case checks preprocessor directive recognition and function call tracking.
+
+\begin{verbatim}
+// Test Case 4: Preprocessor directives and function call
+#define MAX 100
+void foo(int a, float b) {
+    int arr[MAX];
+}
+int main() {
+    foo(10, 20.5);
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 5: String and Character Literals with Escape Sequences}
+
+This test case validates the scanner's handling of character literals with escape sequences.
+
+\begin{verbatim}
+// Test Case 5: String and character literals
+#include <stdio.h>
+int main() {
+    char c = '\n';
+    char* str = "Test string with escape \" and newline\n";
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 6: Advanced String and Character Literals}
+
+This test case validates more complex string and character literals, including various escape sequences.
+
+\begin{verbatim}
+// Test Case 6: String and char literals
+#include <stdio.h>
+
+int main() {
+    char* s1 = "Hello World";
+    char* s2 = "Hello \"Quoted\" World";
+    char* s3 = "Line1\nLine2";
+    char c1 = 'a';
+    char c2 = '\n';
+    char c3 = '\'';
+    
+    printf("%s %c\n", s1, c1);
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 7: Custom Functions with Parameters and Calls}
+
+This test case checks the scanner's ability to track function definitions, parameters, and calls.
+
+\begin{verbatim}
+// Test Case: Custom functions with parameters and calls
+#include <stdio.h>
+
+// Simple addition function
+int add(int a, int b) {
+    return a + b;
+}
+
+// Function with multiple parameters and local variables
+float calculate(int x, float y, char op) {
+    float result = 0.0;
+    
+    if (op == '+') {
+        result = x + y;
+    } else if (op == '-') {
+        result = x - y;
+    } else if (op == '*') {
+        result = x * y;
+    } else if (op == '/') {
+        if (y != 0) {
+            result = x / y;
+        }
+    }
+    
+    return result;
+}
+
+// Main function calling the custom functions
+int main() {
+    int sum = add(5, 10);
+    printf("Sum: %d\n", sum);
+    
+    float calc_result = calculate(20, 5.5, '+');
+    printf("Calculation result: %.2f\n", calc_result);
+    
+    // Testing another operation
+    calc_result = calculate(20, 5.5, '*');
+    printf("Calculation result: %.2f\n", calc_result);
+    
+    return 0;
+}
+\end{verbatim}
+
+\subsection{Test Case 8: Improved Function Tests}
+
+This test case tests function declarations with various parameter types and function calls.
+
+\begin{verbatim}
+// Test Case: Improved function tests
+#include <stdio.h>
+
+// Function with parameters and return value
+int multiply(int x, int y) {
+    return x * y;
+}
+
+// Function with no parameters
+void printMessage() {
+    printf("Hello from function!\n");
+}
+
+// Function with array parameter
+int sumArray(int arr[], int size) {
+    int total = 0;
+    for (int i = 0; i < size; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+
+int main() {
+    // Simple function call with integer constants
+    int product = multiply(6, 7);
+    
+    // Function call with variables
+    int a = 10;
+    int b = 5;
+    int result = multiply(a, b);
+    
+    // Function with no arguments
+    printMessage();
+    
+    // Function with array
+    int numbers[] = {1, 2, 3, 4, 5};
+    int sum = sumArray(numbers, 5);
+    
+    printf("Results: %d, %d, %d\n", product, result, sum);
+    
+    return 0;
+}
 \end{verbatim}
 
 \section{Handling of Comments, Strings, and Errors}

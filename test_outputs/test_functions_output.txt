@@ -126,18 +126,18 @@
 
 ==== SYMBOL TABLE ====
 Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
-sum                  int             -            1          -               -
+add                  int             -            2          int             int a, int b ; 5, 10
 a                    -               -            1          -               -
 b                    -               -            1          -               -
+calculate            float           -            3          float           int x, float y, char op ; 20, 5.5, '+' ; 20, 5.5, '*'
 result               float           -            6          -               -
+op                   -               -            4          -               -
 x                    -               -            4          -               -
 y                    -               -            5          -               -
-add                  int             -            2          int             int a, int b ; 5, 10
-calculate            float           -            3          float           int x, float y, char op ; 20, 5.5, '+' ; 20, 5.5, '*'
-printf               -               -            3          -               "Sum: %d\n", sum ; "Calculation result: %.2f\n", calc_result ; "Calculation result: %.2f\n", calc_result
 main                 int             -            1          int             
+sum                  int             -            1          -               -
+printf               -               -            3          -               "Sum: %d\n", sum ; "Calculation result: %.2f\n", calc_result ; "Calculation result: %.2f\n", calc_result
 calc_result          float           -            2          -               -
-op                   -               -            4          -               -
 
 ==== CONSTANT TABLE ====
 Variable Name        Line No.   Value                          Type

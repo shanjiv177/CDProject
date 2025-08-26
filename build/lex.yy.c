@@ -1587,29 +1587,29 @@ YY_RULE_SETUP
 #line 312 "src/scanner.l"
 {
     BEGIN(COMMENT);
-    int depth = 1;
     int c1, c2;
-    while (depth > 0) {
+    int has_nested_warning = 0;
+    while (1) {
         c1 = input();
         if (c1 == EOF) {
             fprintf(stderr, "[line %d] ERROR: Unterminated comment\n", yylineno);
             BEGIN(INITIAL);
             break;
         }
-        if (c1 == '\n') {
-            /* Count newlines in comments */
-        }
         if (c1 == '/') {
             c2 = input();
-            if (c2 == '*') {
-                depth++;
-            } else if (c2 != EOF) {
+            if (c2 == '*' && !has_nested_warning) {
+                fprintf(stderr, "[line %d] WARNING: Possible nested comment detected - C does not support nested comments\n", yylineno);
+                has_nested_warning = 1;
+            }
+            if (c2 != EOF && c2 != '*') {
                 unput(c2);
             }
         } else if (c1 == '*') {
             c2 = input();
             if (c2 == '/') {
-                depth--;
+                /* Found end of comment */
+                break;
             } else if (c2 != EOF) {
                 unput(c2);
             }

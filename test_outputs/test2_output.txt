@@ -29,11 +29,11 @@
 
 ==== SYMBOL TABLE ====
 Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
+main                 int             -            1          int             
 a                    int             -            1          -               -
 b                    float           -            1          -               -
 c                    char            -            1          -               -
 printf               -               -            1          -               "Hello World\n"
-main                 int             -            1          int             
 
 ==== CONSTANT TABLE ====
 Variable Name        Line No.   Value                          Type

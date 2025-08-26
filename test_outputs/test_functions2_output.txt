@@ -115,23 +115,23 @@
 
 ==== SYMBOL TABLE ====
 Name                 Type            Dimensions   Frequency  Return Type     Parameters Lists in Function call
-sum                  int             -            1          -               -
+multiply             int             -            3          int             int x, int y ; 6, 7 ; a, b
+x                    -               -            1          -               -
+y                    -               -            1          -               -
+printMessage         void            -            2          void             ; 
+printf               -               -            2          -               "Hello from function!\n" ; "Results: %d, %d, %d\n", product, result, sum
+sumArray             int             -            2          int             int arr[], int size ; numbers, 5
+total                int             -            3          -               -
+i                    int             -            4          -               -
+size                 -               -            1          -               -
+arr                  -               -            1          -               -
+main                 int             -            1          int             
+product              int             -            1          -               -
 a                    int             -            1          -               -
 b                    int             -            1          -               -
 result               int             -            1          -               -
-i                    int             -            4          -               -
-x                    -               -            1          -               -
-y                    -               -            1          -               -
-sumArray             int             -            2          int             int arr[], int size ; numbers, 5
-total                int             -            3          -               -
-printf               -               -            2          -               "Hello from function!\n" ; "Results: %d, %d, %d\n", product, result, sum
-arr                  -               -            1          -               -
-printMessage         void            -            2          void             ; 
-size                 -               -            1          -               -
-product              int             -            1          -               -
 numbers              int             -            1          -               -
-main                 int             -            1          int             
-multiply             int             -            3          int             int x, int y ; 6, 7 ; a, b
+sum                  int             -            1          -               -
 
 ==== CONSTANT TABLE ====
 Variable Name        Line No.   Value                          Type
