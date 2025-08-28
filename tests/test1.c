@@ -5,5 +5,6 @@ int main() {
     float b = 20.5;
     char c = 'x';
     printf("Hello World\n");
+    float num = 156.;
     return 0;
 }
